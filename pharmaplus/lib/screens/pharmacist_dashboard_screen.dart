@@ -8,7 +8,7 @@ class PharmacistDashboardScreen extends StatefulWidget {
 }
 
 class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
-  final List<Map<String, String>> _medicines = []; // ওষুধের লিস্ট
+  final List<Map<String, String>> _medicines = []; 
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();

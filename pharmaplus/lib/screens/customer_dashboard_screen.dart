@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// Dummy data (later pharmacist এর CRUD data এর সাথে link হবে)
+
 final List<Map<String, dynamic>> medicines = [
   {"name": "Paracetamol 500mg", "price": 5.99},
   {"name": "Napa Extra", "price": 6.50},
@@ -21,7 +21,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Search অনুযায়ী filtered list তৈরি
+    
     final filteredMedicines = medicines
         .where((medicine) =>
             medicine["name"].toString().toLowerCase().contains(_searchQuery.toLowerCase()))
@@ -52,7 +52,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
             ),
           ),
 
-          // 🧾 Medicine List
+          //  Medicine List
           Expanded(
             child: filteredMedicines.isEmpty
                 ? const Center(

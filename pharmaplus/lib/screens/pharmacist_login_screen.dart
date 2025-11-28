@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pharmacist_dashboard_screen.dart'; // ✅ ড্যাশবোর্ড স্ক্রিন ইম্পোর্ট করা হয়েছে
+import 'pharmacist_dashboard_screen.dart'; 
 
 class PharmacistLoginScreen extends StatefulWidget {
   const PharmacistLoginScreen({super.key});
@@ -17,7 +17,7 @@ class _PharmacistLoginScreenState extends State<PharmacistLoginScreen> {
 
   void _loginPharmacist() {
     if (_formKey.currentState!.validate()) {
-      // ✅ লগইন সফল ধরলে সরাসরি ড্যাশবোর্ডে পাঠাও
+      // log in page
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const PharmacistDashboardScreen()),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/pharmacist_login_screen.dart';
 import 'screens/customer_login_screen.dart';
-import 'screens/pharmacist_dashboard_screen.dart'; // ✅ নতুন করে যোগ করা হয়েছে
+import 'screens/pharmacist_dashboard_screen.dart'; 
 
 void main() {
   runApp(const PharmaPlus());
