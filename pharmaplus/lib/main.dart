@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; // flutterfire configure করে এই ফাইল পাববে
+import 'firebase_options.dart'; 
 import 'screens/welcome_screen.dart';
 import 'screens/pharmacist_login_screen.dart';
 import 'screens/customer_login_screen.dart';
