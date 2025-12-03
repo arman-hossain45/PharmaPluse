@@ -1,32 +1,21 @@
 import 'package:flutter/material.dart';
-
-
-final List<Map<String, dynamic>> medicines = [
-  {"name": "Paracetamol 500mg", "price": 5.99},
-  {"name": "Napa Extra", "price": 6.50},
-  {"name": "Seclo 20mg", "price": 8.00},
-  {"name": "Losectil 40mg", "price": 9.50},
-  {"name": "Amodis 250mg", "price": 12.00},
-];
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../service/firebase_service.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
   const CustomerDashboardScreen({super.key});
 
   @override
-  State<CustomerDashboardScreen> createState() => _CustomerDashboardScreenState();
+  State<CustomerDashboardScreen> createState() =>
+      _CustomerDashboardScreenState();
 }
 
 class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
+  final FirebaseService _firebaseService = FirebaseService();
   String _searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
-    
-    final filteredMedicines = medicines
-        .where((medicine) =>
-            medicine["name"].toString().toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Customer Dashboard"),
@@ -35,60 +24,103 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
       ),
       body: Column(
         children: [
-          // 🔍 Search Box
+          // Search Box
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: TextField(
               decoration: InputDecoration(
                 labelText: "Search Medicine",
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onChanged: (value) {
                 setState(() {
-                  _searchQuery = value;
+                  _searchQuery = value.toLowerCase();
                 });
               },
             ),
           ),
 
-          //  Medicine List
+          // Medicine List from Firebase
           Expanded(
-            child: filteredMedicines.isEmpty
-                ? const Center(
-                    child: Text("No medicines found",
-                        style: TextStyle(fontSize: 18, color: Colors.grey)),
-                  )
-                : ListView.builder(
-                    itemCount: filteredMedicines.length,
-                    itemBuilder: (context, index) {
-                      final medicine = filteredMedicines[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: ListTile(
-                          leading: const Icon(Icons.medical_services, color: Colors.teal),
-                          title: Text(medicine["name"]),
-                          subtitle: Text("Price: \$${medicine["price"]}"),
-                          trailing: ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      "${medicine['name']} added to cart (demo only)"),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            ),
-                            child: const Text("Buy"),
-                          ),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firebaseService.getMedicines(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No medicines available",
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                  );
+                }
+
+                // Filter medicines based on search
+                final medicines = snapshot.data!.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final name = (data['name'] ?? '').toString().toLowerCase();
+                  return name.contains(_searchQuery);
+                }).toList();
+
+                if (medicines.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No medicines found",
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: medicines.length,
+                  itemBuilder: (context, index) {
+                    final medicine = medicines[index];
+                    final data = medicine.data() as Map<String, dynamic>;
+                    final name = data['name'] ?? 'Unknown';
+                    final price = data['price'] ?? '0';
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.medical_services,
+                          color: Colors.teal,
                         ),
-                      );
-                    },
-                  ),
+                        title: Text(name),
+                        subtitle: Text("Price: \$$price"),
+                        trailing: ElevatedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("$name added to cart"),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                          ),
+                          child: const Text("Buy"),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),

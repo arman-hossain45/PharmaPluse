@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // flutterfire configure করে এই ফাইল পাববে
 import 'screens/welcome_screen.dart';
 import 'screens/pharmacist_login_screen.dart';
 import 'screens/customer_login_screen.dart';
-import 'screens/pharmacist_dashboard_screen.dart'; 
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const PharmaPlus());
 }
 
@@ -40,3 +45,5 @@ class PharmaPlus extends StatelessWidget {
     );
   }
 }
+
+
