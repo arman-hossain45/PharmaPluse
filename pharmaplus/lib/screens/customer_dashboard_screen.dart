@@ -96,7 +96,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                           color: Colors.teal,
                         ),
                         title: Text(name),
-                        subtitle: Text("Price: \$$price"),
+                        subtitle: Text("Price: \$৳price"),
                         trailing: ElevatedButton(
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
