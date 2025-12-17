@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../service/firebase_service.dart';
-import '../service/auth_service.dart'; 
+import '../service/auth_service.dart';
+import 'cart_screen.dart'; // কার্ট স্ক্রিনে যাওয়ার জন্য
 
 class CustomerDashboardScreen extends StatefulWidget {
   const CustomerDashboardScreen({super.key});
@@ -12,7 +14,8 @@ class CustomerDashboardScreen extends StatefulWidget {
 
 class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   final FirebaseService _firebaseService = FirebaseService();
-  final AuthService _authService = AuthService(); 
+  final AuthService _authService = AuthService();
+  final User? currentUser = FirebaseAuth.instance.currentUser; // কার্টের জন্য
   String _searchQuery = "";
 
   @override
@@ -21,7 +24,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     _checkCustomerRole();
   }
 
-
+  // সিকিউরিটি চেক – শুধু কাস্টমার ঢুকতে পারবে
   Future<void> _checkCustomerRole() async {
     String? role = await _authService.getCurrentUserRole();
     if (!mounted) return;
@@ -38,16 +41,54 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     }
   }
 
-  void _addToCart(String medicineName) {
+  // কার্টে যোগ করার ফিচার (আপনার দেওয়া লজিক)
+  Future<void> _addToCart(String medicineName, String medicineId, double price) async {
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('লগইন করুন'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    DocumentReference cartRef = FirebaseFirestore.instance.collection('carts').doc(currentUser!.uid);
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(cartRef);
+
+      if (!snapshot.exists) {
+        transaction.set(cartRef, {
+          'items': [
+            {'medicineId': medicineId, 'name': medicineName, 'price': price, 'quantity': 1}
+          ],
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        List<dynamic> items = snapshot['items'] ?? [];
+        bool found = false;
+        for (var item in items) {
+          if (item['medicineId'] == medicineId) {
+            item['quantity'] += 1;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          items.add({'medicineId': medicineId, 'name': medicineName, 'price': price, 'quantity': 1});
+        }
+        transaction.update(cartRef, {'items': items, 'updatedAt': FieldValue.serverTimestamp()});
+      }
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$medicineName কার্টে যোগ করা হয়েছে!'),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
         action: SnackBarAction(
-          label: 'দেখুন',
+          label: 'কার্ট দেখুন',
           textColor: Colors.white,
           onPressed: () {
-            // পরে কার্ট স্ক্রিনে নেভিগেট করা যাবে
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
           },
         ),
       ),
@@ -63,6 +104,14 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 4,
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.teal,
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
+        },
+        child: const Icon(Icons.shopping_cart, color: Colors.white),
+        tooltip: 'কার্ট দেখুন',
       ),
       body: Column(
         children: [
@@ -113,7 +162,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                   );
                 }
 
-                // সার্চ অনুযায়ী ফিল্টার
                 final allMedicines = snapshot.data!.docs;
                 final filteredMedicines = allMedicines.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
@@ -137,7 +185,8 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                     final medicine = filteredMedicines[index];
                     final data = medicine.data() as Map<String, dynamic>;
                     final name = data['name'] ?? 'অজানা ওষুধ';
-                    final price = data['price'] ?? '০';
+                    final priceStr = data['price'] ?? '০';
+                    final double price = double.tryParse(priceStr.toString()) ?? 0.0;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -160,7 +209,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            'মূল্য: ৳$price',
+                            'মূল্য: ৳$priceStr',
                             style: const TextStyle(
                               color: Colors.teal,
                               fontSize: 16,
@@ -169,7 +218,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                           ),
                         ),
                         trailing: ElevatedButton.icon(
-                          onPressed: () => _addToCart(name),
+                          onPressed: () => _addToCart(name, medicine.id, price),
                           icon: const Icon(Icons.shopping_cart, size: 18),
                           label: const Text('কিনুন'),
                           style: ElevatedButton.styleFrom(
