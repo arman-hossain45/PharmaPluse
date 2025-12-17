@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../service/firebase_service.dart';
+import '../service/auth_service.dart'; // role চেক করার জন্য
 
 class PharmacistDashboardScreen extends StatefulWidget {
   const PharmacistDashboardScreen({super.key});
@@ -12,8 +13,33 @@ class PharmacistDashboardScreen extends StatefulWidget {
 
 class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
   final FirebaseService _firebaseService = FirebaseService();
+  final AuthService _authService = AuthService(); // সিকিউরিটির জন্য
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPharmacistRole(); // ড্যাশবোর্ড ওপেন হওয়ার সাথে সাথে চেক করা
+  }
+
+  // শুধু ফার্মাসিস্ট হলে থাকবে, না হলে বাইরে পাঠাবে
+  Future<void> _checkPharmacistRole() async {
+    String? role = await _authService.getCurrentUserRole();
+    if (!mounted) return;
+
+    if (role != 'pharmacist') {
+      await _authService.signOut();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('অ্যাক্সেস নিষিদ্ধ! শুধু ফার্মাসিস্টরা এখানে প্রবেশ করতে পারবেন।'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // Welcome Screen-এ ফিরে যাওয়া (আপনার main.dart-এর রুট '/' হলে)
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    }
+  }
 
   void _addMedicine() async {
     if (_nameController.text.isNotEmpty && _priceController.text.isNotEmpty) {
@@ -24,20 +50,21 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
         );
         _nameController.clear();
         _priceController.clear();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Medicine added successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ওষুধ সফলভাবে যোগ করা হয়েছে!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('এরর: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
     }
   }
@@ -49,31 +76,66 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Edit Medicine'),
+        title: const Text('ওষুধ এডিট করুন'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Medicine Name', border: OutlineInputBorder())),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'ওষুধের নাম',
+                border: OutlineInputBorder(),
+              ),
+            ),
             const SizedBox(height: 12),
-            TextField(controller: _priceController, decoration: const InputDecoration(labelText: 'Price', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+            TextField(
+              controller: _priceController,
+              decoration: const InputDecoration(
+                labelText: 'মূল্য',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () { _nameController.clear(); _priceController.clear(); Navigator.pop(context); }, child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              _nameController.clear();
+              _priceController.clear();
+              Navigator.pop(context);
+            },
+            child: const Text('বাতিল'),
+          ),
           ElevatedButton(
             onPressed: () async {
               try {
-                await _firebaseService.updateMedicine(docId, _nameController.text.trim(), _priceController.text.trim());
+                await _firebaseService.updateMedicine(
+                  docId,
+                  _nameController.text.trim(),
+                  _priceController.text.trim(),
+                );
                 _nameController.clear();
                 _priceController.clear();
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Medicine updated successfully!'), backgroundColor: Colors.green));
+                if (mounted) Navigator.pop(context);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('ওষুধ আপডেট সফল হয়েছে!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('এরর: $e'), backgroundColor: Colors.red),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-            child: const Text('Update'),
+            child: const Text('আপডেট'),
           ),
         ],
       ),
@@ -84,22 +146,33 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete Medicine'),
-        content: Text('Are you sure you want to delete "$medicineName"?'),
+        title: const Text('ওষুধ ডিলিট করুন'),
+        content: Text('আপনি কি নিশ্চিত "$medicineName" ডিলিট করতে চান?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('বাতিল')),
           ElevatedButton(
             onPressed: () async {
               try {
                 await _firebaseService.deleteMedicine(docId);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Medicine deleted successfully!'), backgroundColor: Colors.red));
+                if (mounted) Navigator.pop(context);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('ওষুধ ডিলিট সফল হয়েছে!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('এরর: $e'), backgroundColor: Colors.red),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: const Text('ডিলিট'),
           ),
         ],
       ),
@@ -112,18 +185,35 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Add Medicine'),
+        title: const Text('নতুন ওষুধ যোগ করুন'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Medicine Name', border: OutlineInputBorder())),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'ওষুধের নাম',
+                border: OutlineInputBorder(),
+              ),
+            ),
             const SizedBox(height: 12),
-            TextField(controller: _priceController, decoration: const InputDecoration(labelText: 'Price', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+            TextField(
+              controller: _priceController,
+              decoration: const InputDecoration(
+                labelText: 'মূল্য',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(onPressed: _addMedicine, style: ElevatedButton.styleFrom(backgroundColor: Colors.teal), child: const Text('Add')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('বাতিল')),
+          ElevatedButton(
+            onPressed: _addMedicine,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            child: const Text('যোগ করুন'),
+          ),
         ],
       ),
     );
@@ -133,17 +223,33 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pharmacist Dashboard'),
+        title: const Text('ফার্মাসিস্ট ড্যাশবোর্ড'),
         backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
         centerTitle: true,
       ),
-      floatingActionButton: FloatingActionButton(backgroundColor: Colors.teal, onPressed: _showAddDialog, child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.teal,
+        onPressed: _showAddDialog,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _firebaseService.getMedicines(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('No medicines added yet', style: TextStyle(fontSize: 18, color: Colors.grey)));
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('এরর: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'এখনো কোনো ওষুধ যোগ করা হয়নি',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            );
+          }
 
           final medicines = snapshot.data!.docs;
           return ListView.builder(
@@ -153,22 +259,44 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
               final medicine = medicines[index];
               final docId = medicine.id;
               final data = medicine.data() as Map<String, dynamic>;
-              final name = data['name'] ?? 'Unknown';
-              final price = data['price'] ?? '0';
+              final name = data['name'] ?? 'অজানা';
+              final price = data['price'] ?? '০';
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
-                elevation: 2,
+                elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(16),
-                  leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.medication, color: Colors.teal, size: 28)),
-                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  subtitle: Text('Price: \$$price', style: const TextStyle(color: Colors.teal, fontSize: 14, fontWeight: FontWeight.w600)),
-                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                    IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _editMedicine(docId, name, price)),
-                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteMedicine(docId, name)),
-                  ]),
+                  leading: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.medication, color: Colors.teal, size: 28),
+                  ),
+                  title: Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  subtitle: Text(
+                    'মূল্য: ৳$price',
+                    style: const TextStyle(color: Colors.teal, fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _editMedicine(docId, name, price),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteMedicine(docId, name),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

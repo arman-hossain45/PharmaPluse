@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'customer_dashboard_screen.dart'; 
+import 'customer_dashboard_screen.dart';
 
 class CustomerLoginScreen extends StatefulWidget {
   const CustomerLoginScreen({super.key});
@@ -12,12 +12,10 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
   bool _isPasswordVisible = false;
 
   void _loginCustomer() {
     if (_formKey.currentState!.validate()) {
-      // 
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
@@ -47,14 +45,9 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                 "Welcome, Customer!",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
+                    fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal),
               ),
               const SizedBox(height: 40),
-
-              // Email
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(
@@ -65,17 +58,12 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter your email";
-                  } else if (!value.contains('@')) {
-                    return "Enter a valid email";
-                  }
+                  if (value == null || value.isEmpty) return "Please enter your email";
+                  if (!value.contains('@')) return "Enter a valid email";
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
-              // Password
               TextFormField(
                 controller: _passwordController,
                 decoration: InputDecoration(
@@ -83,10 +71,7 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
+                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off),
                     onPressed: () {
                       setState(() {
                         _isPasswordVisible = !_isPasswordVisible;
@@ -99,16 +84,12 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                 ),
                 obscureText: !_isPasswordVisible,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter your password";
-                  } else if (value.length < 6) {
-                    return "Password must be at least 6 characters";
-                  }
+                  if (value == null || value.isEmpty) return "Please enter your password";
+                  if (value.length < 6) return "Password must be at least 6 characters";
                   return null;
                 },
               ),
               const SizedBox(height: 30),
-
               ElevatedButton(
                 onPressed: _loginCustomer,
                 style: ElevatedButton.styleFrom(

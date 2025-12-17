@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pharmaplus/screens/role_selection_screen.dart'; // এটা যোগ করুন
 
 class WelcomeScreen extends StatelessWidget {
   final VoidCallback onLoginAsPharmacist;
@@ -31,7 +32,7 @@ class WelcomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
-              
+
               Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -60,7 +61,7 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   Positioned(
                     top: -5,
                     right: -5,
@@ -76,10 +77,9 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 30),
-              
-        
+
               const Text(
                 'Pharma Plus',
                 style: TextStyle(
@@ -89,10 +89,9 @@ class WelcomeScreen extends StatelessWidget {
                   letterSpacing: 0.5,
                 ),
               ),
-              
+
               const SizedBox(height: 12),
-              
-            
+
               const Text(
                 'Your trusted health & wellness partner',
                 style: TextStyle(
@@ -102,10 +101,9 @@ class WelcomeScreen extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const Spacer(flex: 1),
-              
-            
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: SizedBox(
@@ -153,10 +151,9 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
-            
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: SizedBox(
@@ -188,10 +185,32 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 40),
-              
-              
+
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RoleSelectionScreen(), // এখানে const নেই
+                    ),
+                  );
+                },
+                child: const Text(
+                  'অ্যাকাউন্ট নেই? এখানে রেজিস্টার করুন',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                    decorationColor: Colors.white,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
               const Text(
                 'Healthcare at your fingertips',
                 style: TextStyle(
@@ -199,7 +218,7 @@ class WelcomeScreen extends StatelessWidget {
                   color: Colors.white70,
                 ),
               ),
-              
+
               const Spacer(flex: 2),
             ],
           ),
