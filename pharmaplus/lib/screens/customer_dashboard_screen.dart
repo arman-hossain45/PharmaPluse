@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../service/firebase_service.dart';
 import '../service/auth_service.dart';
-import 'cart_screen.dart'; // কার্ট স্ক্রিনে যাওয়ার জন্য
+import 'cart_screen.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
   const CustomerDashboardScreen({super.key});
@@ -15,7 +15,7 @@ class CustomerDashboardScreen extends StatefulWidget {
 class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   final FirebaseService _firebaseService = FirebaseService();
   final AuthService _authService = AuthService();
-  final User? currentUser = FirebaseAuth.instance.currentUser; // কার্টের জন্য
+  final User? currentUser = FirebaseAuth.instance.currentUser;
   String _searchQuery = "";
 
   @override
@@ -24,7 +24,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     _checkCustomerRole();
   }
 
-  // সিকিউরিটি চেক – শুধু কাস্টমার ঢুকতে পারবে
   Future<void> _checkCustomerRole() async {
     String? role = await _authService.getCurrentUserRole();
     if (!mounted) return;
@@ -41,7 +40,12 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     }
   }
 
-  // কার্টে যোগ করার ফিচার (আপনার দেওয়া লজিক)
+  // Back বাটন ক্লিক করলে লগআউট করে Welcome Screen-এ ফিরে যাওয়া
+  void _goBackToWelcome() async {
+    await _authService.signOut();
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+  }
+
   Future<void> _addToCart(String medicineName, String medicineId, double price) async {
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +87,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
       SnackBar(
         content: Text('$medicineName কার্টে যোগ করা হয়েছে!'),
         backgroundColor: Colors.green,
-        duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'কার্ট দেখুন',
           textColor: Colors.white,
@@ -104,6 +107,16 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 4,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _goBackToWelcome, // Back বাটন কাজ করবে – Welcome Screen-এ ফিরে যাবে
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _goBackToWelcome, // লগআউট বাটনও একই কাজ করবে
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.teal,
@@ -115,7 +128,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
       ),
       body: Column(
         children: [
-          // সার্চ বক্স
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
@@ -140,7 +152,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
             ),
           ),
 
-          // মেডিসিন লিস্ট
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _firebaseService.getMedicines(),

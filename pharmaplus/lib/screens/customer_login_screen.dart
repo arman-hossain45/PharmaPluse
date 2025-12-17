@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'customer_dashboard_screen.dart';
 
 class CustomerLoginScreen extends StatefulWidget {
@@ -13,13 +15,49 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
-  void _loginCustomer() {
-    if (_formKey.currentState!.validate()) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
+  Future<void> _loginCustomer() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
+
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (userDoc.exists && userDoc['role'] == 'customer') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
+        );
+      } else {
+        await FirebaseAuth.instance.signOut();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('আপনি কাস্টমার নন! ফার্মাসিস্ট লগইন করুন।'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'লগইন ব্যর্থ হয়েছে';
+      if (e.code == 'user-not-found') message = 'এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি';
+      if (e.code == 'wrong-password') message = 'পাসওয়ার্ড ভুল';
+      if (e.code == 'invalid-email') message = 'ইমেইল ফরম্যাট ভুল';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -30,6 +68,7 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
         title: const Text("Customer Login"),
         backgroundColor: Colors.teal,
         centerTitle: true,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -45,7 +84,10 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                 "Welcome, Customer!",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal,
+                ),
               ),
               const SizedBox(height: 40),
               TextFormField(
@@ -57,6 +99,7 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+                keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.isEmpty) return "Please enter your email";
                   if (!value.contains('@')) return "Enter a valid email";
@@ -71,12 +114,9 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
-                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () {
-                      setState(() {
-                        _isPasswordVisible = !_isPasswordVisible;
-                      });
-                    },
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -90,20 +130,22 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                 },
               ),
               const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _loginCustomer,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  "Login",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+                  : ElevatedButton(
+                      onPressed: _loginCustomer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        "Login",
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
             ],
           ),
         ),
