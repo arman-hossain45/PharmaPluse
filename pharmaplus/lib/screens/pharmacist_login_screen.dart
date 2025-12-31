@@ -17,13 +17,13 @@ class _PharmacistLoginScreenState extends State<PharmacistLoginScreen> {
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
-  Future<void> _loginPharmacist() async {
+  void _loginPharmacist() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Firebase দিয়ে লগইন করা
+      // Firebase Auth দিয়ে লগইন করা
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -42,23 +42,27 @@ class _PharmacistLoginScreenState extends State<PharmacistLoginScreen> {
           MaterialPageRoute(builder: (_) => const PharmacistDashboardScreen()),
         );
       } else {
-        // ভুল role – লগআউট
+        // ভুল role – লগআউট করে এরর দেখানো
         await FirebaseAuth.instance.signOut();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('আপনি ফার্মাসিস্ট নন! কাস্টমার লগইন করুন।'),
+            content: Text('আপনি ফার্মাসিস্ট নন! ভুল অ্যাকাউন্ট বা role।'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } on FirebaseAuthException catch (e) {
       String message = 'লগইন ব্যর্থ হয়েছে';
-      if (e.code == 'user-not-found') message = 'এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি';
+      if (e.code == 'user-not-found') message = 'এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট নেই';
       if (e.code == 'wrong-password') message = 'পাসওয়ার্ড ভুল';
       if (e.code == 'invalid-email') message = 'ইমেইল ফরম্যাট ভুল';
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('এরর: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -72,7 +76,6 @@ class _PharmacistLoginScreenState extends State<PharmacistLoginScreen> {
         title: const Text("Pharmacist Login"),
         backgroundColor: Colors.teal,
         centerTitle: true,
-        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -88,10 +91,7 @@ class _PharmacistLoginScreenState extends State<PharmacistLoginScreen> {
                 "Welcome, Pharmacist!",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
+                    fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal),
               ),
               const SizedBox(height: 40),
               TextFormField(
@@ -118,8 +118,7 @@ class _PharmacistLoginScreenState extends State<PharmacistLoginScreen> {
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    ),
+                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off),
                     onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                   ),
                   border: OutlineInputBorder(
@@ -135,7 +134,7 @@ class _PharmacistLoginScreenState extends State<PharmacistLoginScreen> {
               ),
               const SizedBox(height: 30),
               _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+                  ? const CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _loginPharmacist,
                       style: ElevatedButton.styleFrom(

@@ -42,19 +42,23 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
         await FirebaseAuth.instance.signOut();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('আপনি কাস্টমার নন! ফার্মাসিস্ট লগইন করুন।'),
+            content: Text('আপনি কাস্টমার নন! ভুল অ্যাকাউন্ট বা role।'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } on FirebaseAuthException catch (e) {
       String message = 'লগইন ব্যর্থ হয়েছে';
-      if (e.code == 'user-not-found') message = 'এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি';
+      if (e.code == 'user-not-found') message = 'এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট নেই';
       if (e.code == 'wrong-password') message = 'পাসওয়ার্ড ভুল';
       if (e.code == 'invalid-email') message = 'ইমেইল ফরম্যাট ভুল';
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('এরর: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -68,7 +72,6 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
         title: const Text("Customer Login"),
         backgroundColor: Colors.teal,
         centerTitle: true,
-        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -131,7 +134,7 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
               ),
               const SizedBox(height: 30),
               _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+                  ? const CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _loginCustomer,
                       style: ElevatedButton.styleFrom(

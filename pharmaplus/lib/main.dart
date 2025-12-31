@@ -31,31 +31,33 @@ class PharmaPlus extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: const AuthStateChecker(),
+      home: const AuthWrapper(),
     );
   }
 }
 
-// Checks if user is logged in or not
-class AuthStateChecker extends StatelessWidget {
-  const AuthStateChecker({super.key});
+// লগইন আছে কিনা চেক করে সঠিক স্ক্রিন দেখাবে
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // লোডিং দেখানো
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator(color: Colors.teal)),
           );
         }
 
+        // ইউজার লগইন আছে কিনা
         if (snapshot.hasData) {
-          // User is logged in → check role and go to correct dashboard
-          return const RoleBasedScreen();
+          // লগইন আছে – role চেক করে ড্যাশবোর্ডে পাঠানো
+          return const RoleBasedDashboard();
         } else {
-          // No user logged in → show Welcome Screen
+          // লগইন নেই – Welcome Screen দেখানো
           return WelcomeScreen(
             onLoginAsPharmacist: () {
               Navigator.push(
@@ -76,9 +78,9 @@ class AuthStateChecker extends StatelessWidget {
   }
 }
 
-// Checks user's role from Firestore and routes to correct dashboard
-class RoleBasedScreen extends StatelessWidget {
-  const RoleBasedScreen({super.key});
+// role অনুযায়ী সঠিক ড্যাশবোর্ড দেখানো
+class RoleBasedDashboard extends StatelessWidget {
+  const RoleBasedDashboard({super.key});
 
   Future<String?> _getUserRole() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -95,7 +97,7 @@ class RoleBasedScreen extends StatelessWidget {
         return data['role'] as String?;
       }
     } catch (e) {
-      print('Error reading role: $e');
+      print('Role পড়তে এরর: $e');
     }
     return null;
   }
@@ -118,7 +120,7 @@ class RoleBasedScreen extends StatelessWidget {
         } else if (role == 'customer') {
           return const CustomerDashboardScreen();
         } else {
-          // Invalid or no role → log out and go to Welcome
+          // role না পেলে বা ভুল হলে লগআউট করে Welcome-এ পাঠানো
           FirebaseAuth.instance.signOut();
           return WelcomeScreen(
             onLoginAsPharmacist: () {
