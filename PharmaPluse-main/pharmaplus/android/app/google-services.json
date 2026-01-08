@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "407997731128",
+    "project_id": "pharmaplus-67ed4",
+    "storage_bucket": "pharmaplus-67ed4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:407997731128:android:f1e9d5697fb82dd45c71cd",
+        "android_client_info": {
+          "package_name": "com.example.pharmaplus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUDm-I4Olu05dzBpjKX81SUTcLH4MDSyk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

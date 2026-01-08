@@ -1,99 +1,122 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../service/firebase_service.dart';
 import '../service/auth_service.dart';
-import 'cart_screen.dart';
+import 'welcome_screen.dart'; 
+import 'customer_login_screen.dart'; 
+import 'pharmacist_login_screen.dart'; 
 
-class CustomerDashboardScreen extends StatefulWidget {
-  const CustomerDashboardScreen({super.key});
+class PharmacistDashboardScreen extends StatefulWidget {
+  const PharmacistDashboardScreen({super.key});
 
   @override
-  State<CustomerDashboardScreen> createState() => _CustomerDashboardScreenState();
+  State<PharmacistDashboardScreen> createState() => _PharmacistDashboardScreenState();
 }
 
-class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
+class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
   final FirebaseService _firebaseService = FirebaseService();
   final AuthService _authService = AuthService();
-  final User? currentUser = FirebaseAuth.instance.currentUser;
-  String _searchQuery = "";
 
-  @override
-  void initState() {
-    super.initState();
-    _checkCustomerRole();
-  }
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _stockController = TextEditingController();
 
-  Future<void> _checkCustomerRole() async {
-    String? role = await _authService.getCurrentUserRole();
-    if (!mounted) return;
-
-    if (role != 'customer') {
-      await _authService.signOut();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('অ্যাক্সেস নিষিদ্ধ! শুধু কাস্টমাররা এখানে প্রবেশ করতে পারবেন।'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-    }
-  }
-
-  // Back বাটন ক্লিক করলে লগআউট করে Welcome Screen-এ ফিরে যাওয়া
-  void _goBackToWelcome() async {
+  Future<void> _signOut() async {
     await _authService.signOut();
-    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => WelcomeScreen(
+          onLoginAsPharmacist: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PharmacistLoginScreen())),
+          onLoginAsCustomer: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerLoginScreen())),
+        )),
+        (Route<dynamic> route) => false,
+      );
+    }
   }
 
-  Future<void> _addToCart(String medicineName, String medicineId, double price) async {
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('লগইন করুন'), backgroundColor: Colors.red),
-      );
-      return;
+  void _clearControllers() {
+    _nameController.clear();
+    _priceController.clear();
+    _stockController.clear();
+  }
+
+  void _showAddEditDialog({DocumentSnapshot? docToEdit}) {
+    bool isEditing = docToEdit != null;
+    _clearControllers();
+
+    if (isEditing) {
+      final data = docToEdit.data() as Map<String, dynamic>;
+      _nameController.text = data['name'] ?? '';
+      _priceController.text = (data['price'] as num?)?.toString() ?? ''; 
+      _stockController.text = (data['stock'] as int?)?.toString() ?? '0';
     }
 
-    DocumentReference cartRef = FirebaseFirestore.instance.collection('carts').doc(currentUser!.uid);
-
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      DocumentSnapshot snapshot = await transaction.get(cartRef);
-
-      if (!snapshot.exists) {
-        transaction.set(cartRef, {
-          'items': [
-            {'medicineId': medicineId, 'name': medicineName, 'price': price, 'quantity': 1}
-          ],
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } else {
-        List<dynamic> items = snapshot['items'] ?? [];
-        bool found = false;
-        for (var item in items) {
-          if (item['medicineId'] == medicineId) {
-            item['quantity'] += 1;
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          items.add({'medicineId': medicineId, 'name': medicineName, 'price': price, 'quantity': 1});
-        }
-        transaction.update(cartRef, {'items': items, 'updatedAt': FieldValue.serverTimestamp()});
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$medicineName কার্টে যোগ করা হয়েছে!'),
-        backgroundColor: Colors.green,
-        action: SnackBarAction(
-          label: 'কার্ট দেখুন',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
-          },
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isEditing ? 'Edit Medicine' : 'Add New Medicine'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(
+                controller: _priceController,
+                decoration: const InputDecoration(labelText: 'Price'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              TextField(
+                controller: _stockController,
+                decoration: const InputDecoration(labelText: 'Stock'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (_nameController.text.isEmpty || _priceController.text.isEmpty || _stockController.text.isEmpty) {
+                if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please fill all fields.')),
+                    );
+                }
+                return;
+              }
+              try {
+                // CORRECT: Parse price to num and stock to int 
+                final num price = num.parse(_priceController.text.trim());
+                final int stock = int.parse(_stockController.text.trim());
+
+                if (isEditing) {
+                  await _firebaseService.updateMedicineWithStock(
+                    docToEdit!.id,
+                    _nameController.text.trim(),
+                    price, 
+                    stock,
+                  );
+                } else {
+                  await _firebaseService.addMedicineWithStock(
+                    _nameController.text.trim(),
+                    price, 
+                    stock,
+                  );
+                }
+                if (mounted) Navigator.pop(context);
+              } catch (e) {
+                if(mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Invalid number input for Price or Stock.')),
+                  );
+                }
+              }
+            },
+            child: Text(isEditing ? 'Update' : 'Add'),
+          ),
+        ],
       ),
     );
   }
@@ -102,151 +125,68 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('কাস্টমার হোম'),
+        title: const Text('Pharmacist Dashboard (Inventory)'),
         backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _goBackToWelcome, // Back বাটন কাজ করবে – Welcome Screen-এ ফিরে যাবে
-        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _goBackToWelcome, // লগআউট বাটনও একই কাজ করবে
-          ),
+          IconButton(onPressed: _signOut, icon: const Icon(Icons.logout, color: Colors.white)),
         ],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _firebaseService.getMedicines(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No medicines found. Add some!'));
+          }
+
+          final medicines = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: medicines.length,
+            itemBuilder: (context, index) {
+              final medicine = medicines[index];
+              final data = medicine.data() as Map<String, dynamic>;
+              
+              final name = data['name'] ?? 'N/A';
+              
+              final num priceNum = data['price'] as num? ?? 0.0;
+              final String price = priceNum.toStringAsFixed(2);
+              
+              final String stock = (data['stock'] as int? ?? 0).toString();
+
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('Price: \$$price | Stock: $stock'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _showAddEditDialog(docToEdit: medicine),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _firebaseService.deleteMedicine(medicine.id),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddEditDialog(),
         backgroundColor: Colors.teal,
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
-        },
-        child: const Icon(Icons.shopping_cart, color: Colors.white),
-        tooltip: 'কার্ট দেখুন',
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                labelText: 'ওষুধ খুঁজুন',
-                hintText: 'ওষুধের নাম লিখুন...',
-                prefixIcon: const Icon(Icons.search, color: Colors.teal),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Colors.teal),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Colors.teal, width: 2),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase().trim();
-                });
-              },
-            ),
-          ),
-
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firebaseService.getMedicines(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.teal));
-                }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('এরর: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'কোনো ওষুধ পাওয়া যায়নি',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
-                    ),
-                  );
-                }
-
-                final allMedicines = snapshot.data!.docs;
-                final filteredMedicines = allMedicines.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final name = (data['name'] ?? '').toString().toLowerCase();
-                  return name.contains(_searchQuery);
-                }).toList();
-
-                if (filteredMedicines.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'আপনার অনুসন্ধানের সাথে মিলছে না',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: filteredMedicines.length,
-                  itemBuilder: (context, index) {
-                    final medicine = filteredMedicines[index];
-                    final data = medicine.data() as Map<String, dynamic>;
-                    final name = data['name'] ?? 'অজানা ওষুধ';
-                    final priceStr = data['price'] ?? '০';
-                    final double price = double.tryParse(priceStr.toString()) ?? 0.0;
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.teal.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.medical_services, color: Colors.teal, size: 32),
-                        ),
-                        title: Text(
-                          name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            'মূল্য: ৳$priceStr',
-                            style: const TextStyle(
-                              color: Colors.teal,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        trailing: ElevatedButton.icon(
-                          onPressed: () => _addToCart(name, medicine.id, price),
-                          icon: const Icon(Icons.shopping_cart, size: 18),
-                          label: const Text('কিনুন'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

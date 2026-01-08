@@ -36,7 +36,6 @@ class PharmaPlus extends StatelessWidget {
   }
 }
 
-// লগইন আছে কিনা চেক করে সঠিক স্ক্রিন দেখাবে
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -45,19 +44,15 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // লোডিং দেখানো
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator(color: Colors.teal)),
           );
         }
 
-        // ইউজার লগইন আছে কিনা
         if (snapshot.hasData) {
-          // লগইন আছে – role চেক করে ড্যাশবোর্ডে পাঠানো
           return const RoleBasedDashboard();
         } else {
-          // লগইন নেই – Welcome Screen দেখানো
           return WelcomeScreen(
             onLoginAsPharmacist: () {
               Navigator.push(
@@ -78,7 +73,6 @@ class AuthWrapper extends StatelessWidget {
   }
 }
 
-// role অনুযায়ী সঠিক ড্যাশবোর্ড দেখানো
 class RoleBasedDashboard extends StatelessWidget {
   const RoleBasedDashboard({super.key});
 
@@ -97,7 +91,8 @@ class RoleBasedDashboard extends StatelessWidget {
         return data['role'] as String?;
       }
     } catch (e) {
-      print('Role পড়তে এরর: $e');
+      // ignore: avoid_print
+      print('Role reading error: $e');
     }
     return null;
   }
@@ -120,8 +115,8 @@ class RoleBasedDashboard extends StatelessWidget {
         } else if (role == 'customer') {
           return const CustomerDashboardScreen();
         } else {
-          // role না পেলে বা ভুল হলে লগআউট করে Welcome-এ পাঠানো
-          FirebaseAuth.instance.signOut();
+          Future.microtask(() => FirebaseAuth.instance.signOut());
+          
           return WelcomeScreen(
             onLoginAsPharmacist: () {
               Navigator.push(
