@@ -23,7 +23,8 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -36,29 +37,37 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
       if (userDoc.exists && userDoc['role'] == 'customer') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
+          MaterialPageRoute(
+              builder: (_) => const CustomerDashboardScreen()),
         );
       } else {
         await FirebaseAuth.instance.signOut();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('আপনি কাস্টমার নন! ভুল অ্যাকাউন্ট বা role।'),
+            content: Text(
+                'You are not a customer! Wrong account or role.'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'লগইন ব্যর্থ হয়েছে';
-      if (e.code == 'user-not-found') message = 'এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট নেই';
-      if (e.code == 'wrong-password') message = 'পাসওয়ার্ড ভুল';
-      if (e.code == 'invalid-email') message = 'ইমেইল ফরম্যাট ভুল';
+      String message = 'Login failed';
+      if (e.code == 'user-not-found') {
+        message = 'No account found with this email';
+      }
+      if (e.code == 'wrong-password') {
+        message = 'Incorrect password';
+      }
+      if (e.code == 'invalid-email') {
+        message = 'Invalid email format';
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: Colors.red),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('এরর: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -104,8 +113,12 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                 ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
-                  if (value == null || value.isEmpty) return "Please enter your email";
-                  if (!value.contains('@')) return "Enter a valid email";
+                  if (value == null || value.isEmpty) {
+                    return "Please enter your email";
+                  }
+                  if (!value.contains('@')) {
+                    return "Enter a valid email";
+                  }
                   return null;
                 },
               ),
@@ -117,9 +130,12 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
-                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                    onPressed: () => setState(
+                        () => _isPasswordVisible = !_isPasswordVisible),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -127,8 +143,12 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                 ),
                 obscureText: !_isPasswordVisible,
                 validator: (value) {
-                  if (value == null || value.isEmpty) return "Please enter your password";
-                  if (value.length < 6) return "Password must be at least 6 characters";
+                  if (value == null || value.isEmpty) {
+                    return "Please enter your password";
+                  }
+                  if (value.length < 6) {
+                    return "Password must be at least 6 characters";
+                  }
                   return null;
                 },
               ),
@@ -146,7 +166,8 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                       ),
                       child: const Text(
                         "Login",
-                        style: TextStyle(fontSize: 18, color: Colors.white),
+                        style:
+                            TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
             ],

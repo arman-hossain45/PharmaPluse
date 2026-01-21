@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class AdminOrdersScreen extends StatelessWidget {
-  const AdminOrdersScreen({super.key});
+class OrderHistoryScreen extends StatelessWidget {
+  const OrderHistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Orders (Admin)'),
+        title: const Text('Order History'),
         backgroundColor: Colors.teal,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('orders')
+            .where('userId', isEqualTo: user!.uid)
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -23,6 +27,10 @@ class AdminOrdersScreen extends StatelessWidget {
 
           final orders = snapshot.data!.docs;
 
+          if (orders.isEmpty) {
+            return const Center(child: Text('No orders yet'));
+          }
+
           return ListView.builder(
             itemCount: orders.length,
             itemBuilder: (context, index) {
@@ -30,8 +38,7 @@ class AdminOrdersScreen extends StatelessWidget {
               return Card(
                 child: ListTile(
                   title: Text('৳${order['total']}'),
-                  subtitle: Text(
-                      'Payment: ${order['paymentMethod']} | Status: ${order['status']}'),
+                  subtitle: Text('Status: ${order['status']}'),
                 ),
               );
             },

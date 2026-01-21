@@ -99,7 +99,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('আপনার কার্ট'),
+        title: const Text('Your Cart'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
@@ -108,7 +108,7 @@ class _CartScreenState extends State<CartScreen> {
           : cartItems.isEmpty
               ? const Center(
                   child: Text(
-                    'আপনার কার্ট খালি',
+                    'Your cart is empty',
                     style: TextStyle(fontSize: 18),
                   ),
                 )
@@ -164,7 +164,7 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ),
 
-                    // 🔹 Bottom Section (THIS IS WHERE YOUR CODE GOES)
+                    // 🔹 Bottom Section
                     Container(
                       padding: const EdgeInsets.all(20),
                       child: Column(
@@ -174,7 +174,7 @@ class _CartScreenState extends State<CartScreen> {
                                 MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
-                                'মোট মূল্য',
+                                'Total Price',
                                 style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold),
@@ -199,8 +199,6 @@ class _CartScreenState extends State<CartScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.teal,
                               ),
-
-                              // 🔽 🔽 🔽 YOUR onPressed CODE IS HERE
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -211,10 +209,8 @@ class _CartScreenState extends State<CartScreen> {
                                   ),
                                 );
                               },
-                              // 🔼 🔼 🔼
-
                               child: const Text(
-                                'অর্ডার করুন',
+                                'Place Order',
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold),

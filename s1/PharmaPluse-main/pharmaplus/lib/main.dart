@@ -28,8 +28,10 @@ class PharmaPlus extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.teal,
-        fontFamily: 'Roboto',
-        useMaterial3: true,
+
+        // ✅ VERY IMPORTANT FIX
+        // ❌ DO NOT set fontFamily globally
+        useMaterial3: false,
       ),
       home: const AuthWrapper(),
     );
@@ -45,30 +47,32 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // লোডিং দেখানো
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: Colors.teal)),
+            body: Center(
+              child: CircularProgressIndicator(color: Colors.teal),
+            ),
           );
         }
 
-        // ইউজার লগইন আছে কিনা
         if (snapshot.hasData) {
-          // লগইন আছে – role চেক করে ড্যাশবোর্ডে পাঠানো
           return const RoleBasedDashboard();
         } else {
-          // লগইন নেই – Welcome Screen দেখানো
           return WelcomeScreen(
             onLoginAsPharmacist: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const PharmacistLoginScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const PharmacistLoginScreen(),
+                ),
               );
             },
             onLoginAsCustomer: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CustomerLoginScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const CustomerLoginScreen(),
+                ),
               );
             },
           );
@@ -97,7 +101,7 @@ class RoleBasedDashboard extends StatelessWidget {
         return data['role'] as String?;
       }
     } catch (e) {
-      print('Role পড়তে এরর: $e');
+      debugPrint('Role পড়তে সমস্যা: $e');
     }
     return null;
   }
@@ -109,7 +113,9 @@ class RoleBasedDashboard extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: Colors.teal)),
+            body: Center(
+              child: CircularProgressIndicator(color: Colors.teal),
+            ),
           );
         }
 
@@ -120,19 +126,22 @@ class RoleBasedDashboard extends StatelessWidget {
         } else if (role == 'customer') {
           return const CustomerDashboardScreen();
         } else {
-          // role না পেলে বা ভুল হলে লগআউট করে Welcome-এ পাঠানো
           FirebaseAuth.instance.signOut();
           return WelcomeScreen(
             onLoginAsPharmacist: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const PharmacistLoginScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const PharmacistLoginScreen(),
+                ),
               );
             },
             onLoginAsCustomer: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CustomerLoginScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const CustomerLoginScreen(),
+                ),
               );
             },
           );

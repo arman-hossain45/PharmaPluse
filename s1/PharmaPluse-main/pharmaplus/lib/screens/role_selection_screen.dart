@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'registration_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
-  const RoleSelectionScreen({super.key}); // const রাখা হয়েছে (যদি চান)
+  const RoleSelectionScreen({super.key}); // const kept (if desired)
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('আপনার ভূমিকা নির্বাচন করুন'),
+        title: const Text('Select Your Role'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
@@ -19,7 +19,7 @@ class RoleSelectionScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                'আপনি কে?',
+                'Who are you?',
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 60),
@@ -29,19 +29,24 @@ class RoleSelectionScreen extends StatelessWidget {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const RegistrationScreen(role: 'customer'),
+                        builder: (_) =>
+                            const RegistrationScreen(role: 'customer'),
                       ),
                     );
                   },
                   child: const Text(
-                    'কাস্টমার হিসেবে রেজিস্টার করুন',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    'Register as Customer',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                 ),
               ),
@@ -52,26 +57,34 @@ class RoleSelectionScreen extends StatelessWidget {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal[800],
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const RegistrationScreen(role: 'pharmacist'),
+                        builder: (_) =>
+                            const RegistrationScreen(role: 'pharmacist'),
                       ),
                     );
                   },
                   child: const Text(
-                    'ফার্মাসিস্ট হিসেবে রেজিস্টার করুন',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    'Register as Pharmacist',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                 ),
               ),
               const SizedBox(height: 40),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('পিছনে যান', style: TextStyle(color: Colors.grey)),
+                child: const Text(
+                  'Go Back',
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
             ],
           ),
